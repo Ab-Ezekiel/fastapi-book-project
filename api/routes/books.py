@@ -65,7 +65,7 @@ async def update_book(book_id: int, book: Book) -> Book:
 async def delete_book(book_id: int):
     if book_id not in db.books:
         raise HTTPException(status_code=404, detail="Book not found")
-
-    db.delete_book(book_id)
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"message": "Book deleted successfully"})
+    
+    del db.books[book_id]  # Properly delete the book from memory
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
 
