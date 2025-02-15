@@ -1,9 +1,6 @@
-
-from typing import OrderedDict
-
-from fastapi import APIRouter, status
+from typing import Dict
+from fastapi import APIRouter, status, HTTPException
 from fastapi.responses import JSONResponse
-
 from api.db.schemas import Book, Genre, InMemoryDB
 
 router = APIRouter()
@@ -25,14 +22,13 @@ db.books = {
         genre=Genre.FANTASY,
     ),
     3: Book(
-        id=3,
+       id=3,
         title="The Return of the King",
         author="J.R.R. Tolkien",
         publication_year=1955,
         genre=Genre.FANTASY,
     ),
 }
-
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_book(book: Book):
@@ -41,13 +37,16 @@ async def create_book(book: Book):
         status_code=status.HTTP_201_CREATED, content=book.model_dump()
     )
 
-
-@router.get(
-    "/", response_model=OrderedDict[int, Book], status_code=status.HTTP_200_OK
-)
-async def get_books() -> OrderedDict[int, Book]:
+@router.get("/", response_model=Dict[int, Book], status_code=status.HTTP_200_OK)
+async def get_books() -> Dict[int, Book]:
     return db.get_books()
 
+@router.get("/{book_id}", response_model=Book, status_code=status.HTTP_200_OK)
+async def get_book_by_id(book_id: int):
+    book = db.books.get(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return book
 
 @router.put("/{book_id}", response_model=Book, status_code=status.HTTP_200_OK)
 async def update_book(book_id: int, book: Book) -> Book:
@@ -56,9 +55,10 @@ async def update_book(book_id: int, book: Book) -> Book:
         content=db.update_book(book_id, book).model_dump(),
     )
 
-
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_book(book_id: int) -> None:
+async def delete_book(book_id: int):
+    if book_id not in db.books:
+        raise HTTPException(status_code=404, detail="Book not found")
+
     db.delete_book(book_id)
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
-
